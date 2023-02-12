@@ -5,17 +5,26 @@ An RTS/ARPG-like portfolio project
 Collaborators
 <table>
   <tr>
+    <th>Description</th>
+    <th>GitHub</th>
+    <th>Discord</th>
+    <th>Name</th>
+  </tr>
+  <tr>
     <td>Lead 3D Artist & Game Designer</td>
+    <td>hruk</td>
     <td>clementine#4336</td>
     <td>Zachary Pagano</td>
   </tr>
   <tr>
     <td>Lead Programmer / Music & Sound Designer</td>
+    <td>ReasonMakes</td>
     <td>Reason#0790</td>
     <td>Michael Judge</td>
   </tr>
   <tr>
     <td>Programmer</td>
+    <td>justinozzy</td>
     <td>jstn#0033</td>
     <td>Judge Justin</td>
   </tr>
@@ -24,6 +33,9 @@ Collaborators
 Controls
 <table>
   <tr>
+    <th>Keybind</th>
+    <th>Action</th>
+  </tr>
     <td>WASD</td>
     <td>Camera translation</td>
   </tr>
