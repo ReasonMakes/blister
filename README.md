@@ -33,7 +33,7 @@ Controls
   </tr>
   <tr>
     <td>Hold MMB + drag mouse <i>or</i> QE <i>or</i> arrow keys</td>
-    <td>Rotate view angle around point on ground</td>
+    <td>Rotate view angle around pivot point on ground</td>
   </tr>
   <tr>
     <td>LMB</td>
