@@ -6,18 +6,19 @@ public class CameraMovement : MonoBehaviour
 {
     private const float TAU = 6.2831853071f;
 
-    private float translationSpeed = 3f;
+    private float translationSpeedKeys = 2f;
+    private float translationSpeedEdging = 4f;
+    private float edgingMargin = 5f;
+
     private float zoomSpeed = 1f;
-    private float translationSpeedEdging = 6f;
-    private float screenEdgeMargin = 5f;
-    private float rotationSensitivity = 0.1f;
+    private float zoomDistance = 10f;
+    private const float ZOOM_DISTANCE_MIN = 5f;
+    private const float ZOOM_DISTANCE_MAX = 100f;
+
+    private float rotationSensitivityMouse = 5f;//0.1f;
+    private float rotationSensitivityKeys = 0.5f;//0.1f;
     private float rotationYaw = 0f;
     private float rotationPitch = 0f;
-    //private float rotationSensitivity = 1f;
-    //private float rotationYaw = 0f;
-    //private float rotationPitch = 0f;
-
-
 
     private void Start()
     {
@@ -26,135 +27,88 @@ public class CameraMovement : MonoBehaviour
 
     private void Update()
     {
-        //TRANSLATE CAMERA POSITION
+        //TRANSLATE MOUNT
         //Keys
-        Vector3 forwardFloating = new Vector3(transform.forward.x, 0f, transform.forward.z).normalized;
-        Vector3 rightFloating = new Vector3(transform.right.x, 0f, transform.right.z).normalized;
+        Vector3 forwardGround = new Vector3(transform.forward.x, 0f, transform.forward.z).normalized;
+        Vector3 rightGround = new Vector3(transform.right.x, 0f, transform.right.z).normalized;
         Vector3 vector = Vector3.zero;
-        if (Input.GetKey(KeyCode.W)) { vector += forwardFloating; }
-        if (Input.GetKey(KeyCode.A)) { vector -= rightFloating; }
-        if (Input.GetKey(KeyCode.S)) { vector -= forwardFloating; }
-        if (Input.GetKey(KeyCode.D)) { vector += rightFloating; }
+        if (Input.GetKey(KeyCode.W)) { vector += forwardGround; }
+        if (Input.GetKey(KeyCode.A)) { vector -= rightGround; }
+        if (Input.GetKey(KeyCode.S)) { vector -= forwardGround; }
+        if (Input.GetKey(KeyCode.D)) { vector += rightGround; }
         vector = vector.normalized;
-        transform.position += vector * translationSpeed * transform.position.y * Time.deltaTime;
+        transform.parent.position += vector * translationSpeedKeys * zoomDistance * Time.deltaTime;
 
         //Screen edging
-        if (Input.mousePosition.x <= screenEdgeMargin)
+        if (Input.mousePosition.x <= edgingMargin)
         {
-            transform.position -= rightFloating * translationSpeedEdging * transform.position.y * Time.deltaTime;
+            transform.parent.position -= rightGround * translationSpeedEdging * zoomDistance * Time.deltaTime;
         }
-        else if (Input.mousePosition.x >= Screen.width - screenEdgeMargin)
+        else if (Input.mousePosition.x >= Screen.width - edgingMargin)
         {
-            transform.position += rightFloating * translationSpeedEdging * transform.position.y * Time.deltaTime;
+            transform.parent.position += rightGround * translationSpeedEdging * zoomDistance * Time.deltaTime;
         }
-        if (Input.mousePosition.y <= screenEdgeMargin)
+        if (Input.mousePosition.y <= edgingMargin)
         {
-            transform.position -= forwardFloating * translationSpeedEdging * transform.position.y * Time.deltaTime;
+            transform.parent.position -= forwardGround * translationSpeedEdging * zoomDistance * Time.deltaTime;
         }
-        else if (Input.mousePosition.y >= Screen.height - screenEdgeMargin)
+        else if (Input.mousePosition.y >= Screen.height - edgingMargin)
         {
-            transform.position += forwardFloating * translationSpeedEdging * transform.position.y * Time.deltaTime;
+            transform.parent.position += forwardGround * translationSpeedEdging * zoomDistance * Time.deltaTime;
         }
 
+        //DISTANCE TO MOUNT
         //Zoom
         if ((Input.mouseScrollDelta.y < 0) //|| Input.GetKey(KeyCode.Space))
-            && transform.position.y < 100f) {
-            transform.position += Vector3.up * zoomSpeed;
+            && zoomDistance < ZOOM_DISTANCE_MAX) {
+            zoomDistance += zoomSpeed;
         }
         if ((Input.mouseScrollDelta.y > 0) //|| Input.GetKey(KeyCode.LeftControl))
-            && transform.position.y > 5f) {
-            transform.position -= Vector3.up * zoomSpeed;
+            && zoomDistance > ZOOM_DISTANCE_MIN) {
+            zoomDistance -= zoomSpeed;
         }
 
-        //ROTATE CAMERA VIEW ANGLE
-        //Specified rotation point
+        //ORBIT (ROTATE AROUND) MOUNT
+        //Middle mouse + drag
         if (Input.GetMouseButton(2)) {
-            //Get pivot point
-            //Vector3 grabbedVector3 = new Vector3(Input.mousePosition.x, Input.mousePosition.y, 1.0f);
-            Vector3 grabbedVector3 = new Vector3(Screen.width/2f, Screen.height/2f, 1.0f);
-            Vector3 screenPointToWorldPoint = Camera.main.ScreenToWorldPoint(grabbedVector3);
-            Vector3 cameraToGrabbed = (Camera.main.ScreenToWorldPoint(grabbedVector3) - Camera.main.transform.position).normalized;
-            Ray ray = new Ray(screenPointToWorldPoint, cameraToGrabbed);
-            if (Physics.Raycast(ray, out RaycastHit hit, 5000.0f, LayerMask.GetMask("Ground")))
-            {
-                //Debug ray path
-                Debug.DrawLine(screenPointToWorldPoint, hit.point, Color.blue, 1.0f);
-
-                //YAW
-                //Get properties before rotation
-                Vector3 localRotationEulerBefore = transform.localRotation.eulerAngles;
-
-                //Orbit
-                rotationYaw -= Input.GetAxisRaw("Mouse X") * rotationSensitivity;
-                rotationYaw %= TAU;
-                Vector3 floatingHitPoint = new Vector3(hit.point.x, Camera.main.transform.position.y, hit.point.z);
-                float distanceToFloatingPivotPoint = (Camera.main.transform.position - floatingHitPoint).magnitude;
-                transform.position = floatingHitPoint + new Vector3(
-                    Mathf.Cos(rotationYaw) * distanceToFloatingPivotPoint,
-                    0f,
-                    Mathf.Sin(rotationYaw) * distanceToFloatingPivotPoint
-                );
-
-                //Look at pivot point
-                Quaternion rotationToPivotPoint = Quaternion.LookRotation(hit.point - transform.position, Vector3.up);
-                if (rotationToPivotPoint != Quaternion.identity)
-                {
-                    //Look at pivot point
-                    transform.localRotation = rotationToPivotPoint;
-
-                    //Preserve pitch
-                    Vector3 localRotationEuler = transform.localRotation.eulerAngles;
-                    transform.localRotation = Quaternion.Euler(
-                        localRotationEulerBefore.x, //pitch
-                        localRotationEuler.y,
-                        localRotationEuler.z
-                    );
-                }
-
-                ////PITCH
-                ////Get properties before rotation
-                //localRotationEulerBefore = transform.localRotation.eulerAngles;
-                //
-                ////Orbit
-                //rotationPitch += Input.GetAxisRaw("Mouse Y") * rotationSensitivity;
-                //rotationPitch %= TAU;
-                //Vector3 groundCamera = new Vector3(Camera.main.transform.position.x, 0f, Camera.main.transform.position.z);
-                //Vector3 groundHitPoint = new Vector3(hit.point.x, 0f, hit.point.z);
-                //float distanceToGroundPivotPoint = (groundCamera - groundHitPoint).magnitude;
-                //transform.position = groundHitPoint + new Vector3(
-                //    Mathf.Cos(rotationYaw) * distanceToFloatingPivotPoint,
-                //    Mathf.Sin(rotationPitch) * distanceToGroundPivotPoint,
-                //    Mathf.Sin(rotationYaw) * distanceToFloatingPivotPoint
-                //);
-                //
-                ////Look at pivot point
-                //rotationToPivotPoint = Quaternion.LookRotation(hit.point - transform.position, Vector3.up);
-                //if (rotationToPivotPoint != Quaternion.identity)
-                //{
-                //    //Look at pivot point
-                //    transform.localRotation = rotationToPivotPoint;
-                //
-                //    //Preserve pitch
-                //    Vector3 localRotationEuler = transform.localRotation.eulerAngles;
-                //    transform.localRotation = Quaternion.Euler(
-                //        localRotationEuler.x, //pitch
-                //        localRotationEulerBefore.y,
-                //        localRotationEulerBefore.z
-                //    );
-                //}
-            }
+            rotationYaw += Input.GetAxisRaw("Mouse X") * rotationSensitivityMouse;
+            rotationPitch += Input.GetAxisRaw("Mouse Y") * rotationSensitivityMouse;
         }
-        
-        ////First-person rotation
-        //float rotationInputX = Input.GetAxisRaw("Mouse X") * rotationSensitivity;
-        //rotationYaw += rotationInputX;
-        //float rotationInputY = -Input.GetAxisRaw("Mouse Y") * rotationSensitivity;
-        //rotationPitch += rotationInputY;
-        //
-        //transform.rotation = Quaternion.Euler(
-        //    rotationPitch,
-        //    rotationYaw,
-        //    0f
-        //);
+        //Q & E || arrow keys
+        if (Input.GetKey(KeyCode.Q) || Input.GetKey(KeyCode.LeftArrow))
+        {
+            rotationYaw += rotationSensitivityKeys;
+        }
+        if (Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.RightArrow))
+        {
+            rotationYaw -= rotationSensitivityKeys;
+        }
+        if (Input.GetKey(KeyCode.UpArrow))
+        {
+            rotationPitch += rotationSensitivityKeys;
+        }
+        if (Input.GetKey(KeyCode.DownArrow))
+        {
+            rotationPitch -= rotationSensitivityKeys;
+        }
+
+        //Clamping
+        rotationYaw %= 360f;// TAU;
+        rotationPitch %= 360f;// TAU;
+        rotationPitch = Mathf.Clamp(rotationPitch, 2f, 89f);
+
+        //Rotation
+        Quaternion orbitRotation = Quaternion.Euler(
+            rotationPitch,
+            rotationYaw,
+            0f
+        );
+
+        //Always orbit parent
+        Vector3 offset = orbitRotation * -Vector3.forward;
+        transform.position = transform.parent.position + (offset * zoomDistance);
+
+        //Look at mount
+        transform.rotation = Quaternion.LookRotation(transform.parent.position - transform.position);
     }
 }
