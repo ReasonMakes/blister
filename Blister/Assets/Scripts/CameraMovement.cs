@@ -4,13 +4,21 @@ using UnityEngine;
 
 public class CameraMovement : MonoBehaviour
 {
-    private float translationSpeed = 3f;
+    private const float TAU = 6.2831853071f;
+
+    private float translationSpeedKeys = 2f;
+    private float translationSpeedEdging = 4f;
+    private float edgingMargin = 5f;
+
     private float zoomSpeed = 1f;
-    //private float rotationSensitivity = 1f;
-    //private float rotationYaw = 0f;
-    //private float rotationPitch = 0f;
+    private float zoomDistance = 10f;
+    private const float ZOOM_DISTANCE_MIN = 5f;
+    private const float ZOOM_DISTANCE_MAX = 100f;
 
-
+    private float rotationSensitivityMouse = 5f;//0.1f;
+    private float rotationSensitivityKeys = 0.5f;//0.1f;
+    private float rotationYaw = 0f;
+    private float rotationPitch = 0f;
 
     private void Start()
     {
@@ -19,47 +27,88 @@ public class CameraMovement : MonoBehaviour
 
     private void Update()
     {
-        //TRANSLATE CAMERA POSITION
+        //TRANSLATE MOUNT
+        //Keys
+        Vector3 forwardGround = new Vector3(transform.forward.x, 0f, transform.forward.z).normalized;
+        Vector3 rightGround = new Vector3(transform.right.x, 0f, transform.right.z).normalized;
         Vector3 vector = Vector3.zero;
-
-        //First-person flying movement
-        //if (Input.GetKey(KeyCode.W)) { vector += transform.forward; }
-        //if (Input.GetKey(KeyCode.A)) { vector -= transform.right; }
-        //if (Input.GetKey(KeyCode.S)) { vector -= transform.forward; }
-        //if (Input.GetKey(KeyCode.D)) { vector += transform.right; }
-        //if (Input.GetKey(KeyCode.Space)) { vector += transform.up; }
-        //if (Input.GetKey(KeyCode.LeftControl)) { vector -= transform.up; }
-
-        //RTS movement
-        if (Input.GetKey(KeyCode.W)) { vector += Vector3.forward; }
-        if (Input.GetKey(KeyCode.A)) { vector -= Vector3.right; }
-        if (Input.GetKey(KeyCode.S)) { vector -= Vector3.forward; }
-        if (Input.GetKey(KeyCode.D)) { vector += Vector3.right; }
-        
+        if (Input.GetKey(KeyCode.W)) { vector += forwardGround; }
+        if (Input.GetKey(KeyCode.A)) { vector -= rightGround; }
+        if (Input.GetKey(KeyCode.S)) { vector -= forwardGround; }
+        if (Input.GetKey(KeyCode.D)) { vector += rightGround; }
         vector = vector.normalized;
+        transform.parent.position += vector * translationSpeedKeys * zoomDistance * Time.deltaTime;
 
-        transform.position += vector * translationSpeed * transform.position.y * Time.deltaTime;
+        //Screen edging
+        if (Input.mousePosition.x <= edgingMargin)
+        {
+            transform.parent.position -= rightGround * translationSpeedEdging * zoomDistance * Time.deltaTime;
+        }
+        else if (Input.mousePosition.x >= Screen.width - edgingMargin)
+        {
+            transform.parent.position += rightGround * translationSpeedEdging * zoomDistance * Time.deltaTime;
+        }
+        if (Input.mousePosition.y <= edgingMargin)
+        {
+            transform.parent.position -= forwardGround * translationSpeedEdging * zoomDistance * Time.deltaTime;
+        }
+        else if (Input.mousePosition.y >= Screen.height - edgingMargin)
+        {
+            transform.parent.position += forwardGround * translationSpeedEdging * zoomDistance * Time.deltaTime;
+        }
 
-        //RTS zoom
+        //DISTANCE TO MOUNT
+        //Zoom
         if ((Input.mouseScrollDelta.y < 0) //|| Input.GetKey(KeyCode.Space))
-            && transform.position.y < 100f) {
-            transform.position += Vector3.up * zoomSpeed;
+            && zoomDistance < ZOOM_DISTANCE_MAX) {
+            zoomDistance += zoomSpeed;
         }
         if ((Input.mouseScrollDelta.y > 0) //|| Input.GetKey(KeyCode.LeftControl))
-            && transform.position.y > 5f) {
-            transform.position -= Vector3.up * zoomSpeed;
+            && zoomDistance > ZOOM_DISTANCE_MIN) {
+            zoomDistance -= zoomSpeed;
         }
 
-        ////ROTATE CAMERA VIEW ANGLE
-        //float rotationInputX = Input.GetAxisRaw("Mouse X") * rotationSensitivity;
-        //rotationYaw += rotationInputX;
-        //float rotationInputY = -Input.GetAxisRaw("Mouse Y") * rotationSensitivity;
-        //rotationPitch += rotationInputY;
-        //
-        //transform.rotation = Quaternion.Euler(
-        //    rotationPitch,
-        //    rotationYaw,
-        //    0f
-        //);
+        //ORBIT (ROTATE AROUND) MOUNT
+        //Middle mouse + drag
+        if (Input.GetMouseButton(2)) {
+            rotationYaw += Input.GetAxisRaw("Mouse X") * rotationSensitivityMouse;
+            rotationPitch += Input.GetAxisRaw("Mouse Y") * rotationSensitivityMouse;
+        }
+        //Q & E || arrow keys
+        if (Input.GetKey(KeyCode.Q) || Input.GetKey(KeyCode.LeftArrow))
+        {
+            rotationYaw += rotationSensitivityKeys;
+        }
+        if (Input.GetKey(KeyCode.E) || Input.GetKey(KeyCode.RightArrow))
+        {
+            rotationYaw -= rotationSensitivityKeys;
+        }
+        if (Input.GetKey(KeyCode.UpArrow))
+        {
+            rotationPitch += rotationSensitivityKeys;
+        }
+        if (Input.GetKey(KeyCode.DownArrow))
+        {
+            rotationPitch -= rotationSensitivityKeys;
+        }
+
+        //Clamping
+        rotationYaw %= 360f;// TAU;
+        rotationPitch %= 360f;// TAU;
+        rotationPitch = Mathf.Clamp(rotationPitch, 2f, 89f);
+
+        //Rotation
+        Quaternion orbitRotation = Quaternion.Euler(
+            rotationPitch,
+            rotationYaw,
+            0f
+        );
+
+        //Always orbit parent
+        Vector3 offset = orbitRotation * -Vector3.forward;
+        transform.position = transform.parent.position + (offset * zoomDistance);
+
+        //Look at mount
+        transform.rotation = Quaternion.LookRotation(transform.parent.position - transform.position);
     }
 }
