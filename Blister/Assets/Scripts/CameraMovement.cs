@@ -72,7 +72,7 @@ public class CameraMovement : MonoBehaviour
         //Middle mouse + drag
         if (Input.GetMouseButton(2)) {
             rotationYaw += Input.GetAxisRaw("Mouse X") * rotationSensitivityMouse;
-            rotationPitch += Input.GetAxisRaw("Mouse Y") * rotationSensitivityMouse;
+            rotationPitch -= Input.GetAxisRaw("Mouse Y") * rotationSensitivityMouse;
         }
         //Q & E || arrow keys
         if (Input.GetKey(KeyCode.Q) || Input.GetKey(KeyCode.LeftArrow))

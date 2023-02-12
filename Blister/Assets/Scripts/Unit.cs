@@ -8,7 +8,8 @@ public class Unit : MonoBehaviour
     public Rigidbody rb;
 
     //Brain
-    public enum Order {
+    public enum Order
+    {
         idle,
         move,
         attack,
@@ -23,7 +24,7 @@ public class Unit : MonoBehaviour
 
     private void Update()
     {
-        //Receiving orders
+        //Receive orders
         if (GetComponent<SelectionComponent>() != null)
         {
             //Probably a better way to do this so that EVERY unit doesn't have to run these checks and calculate rally points
@@ -41,23 +42,52 @@ public class Unit : MonoBehaviour
             }
         }
 
-        //Executing orders
-        if (orders == Order.move || orders == Order.attack)
-        {
-            //Move to rally point
-            rb.velocity = (rallyPoint - rb.position).normalized * speed;
+        //Reduce speed when idle
+        float currentSpeed = (orders == Order.idle) ? speed * 0.25f : speed;
 
-            //Always on the ground
-            rb.transform.position = new Vector3(rb.transform.position.x, 0.5f, rb.transform.position.z);
+        Vector3 moveVector = Vector3.zero;
+
+        //Avoid other units
+        for (int i = 0; i < transform.parent.childCount; i++)
+        {
+            Vector3 vectorAwayFromOtherUnit = transform.position - transform.parent.GetChild(i).position;
+            float distanceToOtherUnit = vectorAwayFromOtherUnit.magnitude;
+            float thresholdToBoidBehavior = 4f;
+            float strengthOfBoidBehavior = 0.75f;
+            if (distanceToOtherUnit < thresholdToBoidBehavior)
+            {
+                moveVector += vectorAwayFromOtherUnit.normalized * (((thresholdToBoidBehavior - distanceToOtherUnit) / thresholdToBoidBehavior) * currentSpeed * strengthOfBoidBehavior);
+            }
+        }
+
+        //Execute orders
+        float rallyPointThreshold = 4f;
+        if (
+            orders == Order.move
+            || orders == Order.attack
+            || (
+                orders == Order.idle
+                && (rallyPoint - rb.position).magnitude > rallyPointThreshold
+            )
+        )
+        {
+            //Incorporate rally point into movement vector
+            moveVector += (rallyPoint - rb.position).normalized * currentSpeed;
 
             //Go idle once arrived at rally point
             float distanceToRallyPoint = (rallyPoint - rb.position).magnitude;
-            if (distanceToRallyPoint <= (speed * Time.deltaTime) || distanceToRallyPoint <= 0.09f)
+            if (distanceToRallyPoint <= (currentSpeed * Time.deltaTime) || distanceToRallyPoint <= 0.09f)
             {
-                rb.position = rallyPoint;
-                rb.velocity = Vector3.zero;
+                //rb.position = rallyPoint;
+                //rb.velocity = Vector3.zero;
                 orders = Order.idle;
             }
         }
+
+        //Move
+        rb.velocity = moveVector.normalized * currentSpeed;
+
+        //Always on the ground
+        rb.transform.position = new Vector3(rb.transform.position.x, 0.5f, rb.transform.position.z);
     }
 }
