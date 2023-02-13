@@ -48,19 +48,23 @@ Controls
     <td>Rotate camera around pivot point on ground</td>
   </tr>
   <tr>
-    <td>LMB</td>
-    <td>Select unit</td>
+  <td>LMB</td>
+    <td>Select unit(s)</td>
   </tr>
   <tr>
     <td>LMB + LShift</td>
-    <td>Add unit to selection</td>
+    <td>Add unit(s) to selection</td>
   </tr>
   <tr>
-    <td>LControl + Shift</td>
-    <td>Remove unit from selection</td>
+    <td>LMB + LControl</td>
+    <td>Remove unit(s) from selection</td>
   </tr>
   <tr>
     <td>Hold LMB + drag mouse</td>
     <td>Box select unit(s)</td>
+  </tr>
+  <tr>
+    <td>RMB</td>
+    <td>Move selected unit(s) to position</td>
   </tr>
 </table>
