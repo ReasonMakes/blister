@@ -26,7 +26,7 @@ Collaborators
     <td>Programmer</td>
     <td>justinozzy</td>
     <td>jstn#0033</td>
-    <td>Judge Justin</td>
+    <td>Justin Ozwald</td>
   </tr>
 </table>
 <br />
